@@ -2,5 +2,6 @@
 "zabbix_url": "http://sistema.sectrans.com.br/zabbix/api_jsonrpc.php",
 "username": "douglas.marins",
 "password": "a5ztq3ej",
+"last_days": 5,
 "hostnames": ["Util"]
 }

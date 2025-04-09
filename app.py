@@ -2,35 +2,29 @@ import pandas as pd
 from datetime import datetime
 from consumers import zabbix, unifi
 from pathlib import Path
-import os
 from utils import util
-import matplotlib.pyplot as plt
-
-## Diretorio source da aplicação
-app_directory = os.path.dirname(os.path.realpath(__file__))
+import openpyxl
 
 ## Caminho do arquivo de configuração
-config_path = Path(app_directory) / 'config' / 'config.json'
+config_path = Path() / 'config' / 'config.json'
 
 ## Lendo parâmetros de configuração.
-configFile = util.readJsonFile(config_path)
+configFile = util.read_json_file(config_path)
 
-## Instância do módulo zabbix
+## Instância e login do módulo zabbix
 zabbix = zabbix.Zabbix(configFile.get("zabbix_url"), configFile.get("username"),
                         configFile.get("password"))
-
-# Executando as funções para obter os dados
 auth_token = zabbix.login()
 
+# Executando as funções para obter os dados
 for hostname in configFile.get("hostnames"):
     items = zabbix.get_items(auth_token, hostname)
 
     # Criando um dicionário para armazenar os dados
     data = {}
-    
 
     for item in items:
-        history = zabbix.get_history(auth_token, item["itemid"])
+        history = zabbix.get_history(auth_token, item["itemid"], configFile.get("last_days"))
         timestamps = [datetime.fromtimestamp(int(h["clock"])) for h in history]
         values = [float(h["value"]) for h in history]
 
@@ -45,5 +39,19 @@ for hostname in configFile.get("hostnames"):
     df.sort_values("Data", inplace=True)
     df.ffill(inplace=True)
 
-    print(df)
+
+    # Criando gráficos
+    util.create_graph(hostname, df)
+
+    #Criando Planiclha Excel
+    
+    # Caminho para salvar a planilha
+    output_dir = Path() / "relatorios"
+    output_dir.mkdir(parents=True, exist_ok=True)  # Garante que o diretório exista
+    output_file = output_dir / f"{hostname}_relatorio.xlsx"
+
+    # Salvando o DataFrame em uma planilha Excel
+    df.to_excel(output_file, index=False)
+
+    print(f"✅ Planilha salva em: {output_file}")
     

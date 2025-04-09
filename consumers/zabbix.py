@@ -35,9 +35,9 @@ class Zabbix:
         response = requests.post(self.host, json=item_payload, headers=headers)
         return response.json().get("result", [])
     
-    def get_history(self, auth_token, item_id):
+    def get_history(self, auth_token, item_id, last_days=30):
         now = int(datetime.now().timestamp())
-        one_month_ago = int((datetime.now() - timedelta(days=30)).timestamp())
+        one_month_ago = int((datetime.now() - timedelta(days=last_days)).timestamp())
 
         history_payload = {
             "jsonrpc": "2.0",
