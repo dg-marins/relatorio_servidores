@@ -4,6 +4,7 @@ from consumers import zabbix, unifi
 from pathlib import Path
 from utils import util
 import openpyxl
+import logging
 
 ## Caminho do arquivo de configuração
 config_path = Path() / 'config' / 'config.json'
@@ -16,15 +17,28 @@ zabbix = zabbix.Zabbix(configFile.get("zabbix_url"), configFile.get("username"),
                         configFile.get("password"))
 auth_token = zabbix.login()
 
-# Executando as funções para obter os dados
+# Configuração de logs
+logging.basicConfig(filename='logs/app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 for hostname in configFile.get("hostnames"):
-    items = zabbix.get_items(auth_token, hostname)
+    try:
+        items = zabbix.get_items(auth_token, hostname)
+        logging.info(f'Obtendo itens para o hostname {hostname}')
+    except Exception as e:
+        logging.error(f'Erro ao obter itens para o hostname {hostname}: {str(e)}')
+        continue
 
     # Criando um dicionário para armazenar os dados
     data = {}
 
     for item in items:
-        history = zabbix.get_history(auth_token, item["itemid"], configFile.get("last_days"))
+        try:
+            history = zabbix.get_history(auth_token, item["itemid"], configFile.get("last_days"))
+            logging.info(f'Obtendo historico para o item {item["name"]}')
+        except Exception as e:
+            logging.error(f'Erro ao obter historico para o item {item["name"]}: {str(e)}')
+            continue
+
         timestamps = [datetime.fromtimestamp(int(h["clock"])) for h in history]
         values = [float(h["value"]) for h in history]
 
@@ -39,9 +53,12 @@ for hostname in configFile.get("hostnames"):
     df.sort_values("Data", inplace=True)
     df.ffill(inplace=True)
 
-
     # Criando gráficos
-    util.create_graph(hostname, df)
+    try:
+        util.create_graph(hostname, df)
+        logging.info(f'Gráfico criado para o hostname {hostname}')
+    except Exception as e:
+        logging.error(f'Erro ao criar gráfico para o hostname {hostname}: {str(e)}')
 
     #Criando Planiclha Excel
     
@@ -51,7 +68,11 @@ for hostname in configFile.get("hostnames"):
     output_file = output_dir / f"{hostname}_relatorio.xlsx"
 
     # Salvando o DataFrame em uma planilha Excel
-    df.to_excel(output_file, index=False)
+    try:
+        df.to_excel(output_file, index=False)
+        logging.info(f'Planilha salva em: {output_file}')
+        print(f"✅ Planilha salva em: {output_file}")
+    except Exception as e:
+        logging.error(f'Erro ao salvar planilha em: {output_file}: {str(e)}')
 
-    print(f"✅ Planilha salva em: {output_file}")
     
