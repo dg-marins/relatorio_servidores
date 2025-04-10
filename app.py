@@ -78,8 +78,7 @@ for hostname in configFile.get("hostnames"):
 
     # Salvar PDF com gráfico
     try:
-        graph_path = Path("relatorios") / f"grafico_{hostname}.png"
-        util.create_pdf_summary(hostname, graph_path)
+        util.create_pdf_summary(hostname, data_por_categoria)
         logging.info(f"PDF gerado para {hostname}")
     except Exception as e:
         logging.error(f"Erro ao gerar PDF: {e}")
